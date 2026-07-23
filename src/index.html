@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Code Canvas · AI Workspace</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="app" class="app" data-dock-mode="chat" data-left-panel="open" data-right-panel="open">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      <div><strong>Code Canvas</strong><span id="project-label">AI architecture studio</span></div>
+    </div>
+    <nav class="view-switch" aria-label="Workspace views">
+      <button id="open-project" class="nav-button">Open project</button>
+      <button class="nav-button active">Architecture</button>
+      <button id="open-canvas" class="nav-button">Dependencies</button>
+    </nav>
+    <div class="top-actions">
+      <button id="left-panel-reopen" class="button icon panel-reopen hidden" aria-label="Show project panel" title="Show project panel">☰</button>
+      <button id="right-panel-reopen" class="button icon panel-reopen hidden" aria-label="Show assistant panel" title="Show assistant panel">✦</button>
+      <div class="search-box"><span>⌕</span><input id="query" value="Explain the architecture and key execution flows" aria-label="Search files"><kbd>⌘K</kbd></div>
+      <button id="generate" class="button primary">✦ Analyze</button>
+      <button id="settings-open" class="button icon" aria-label="Settings">◉</button>
+    </div>
+    <div class="window-controls"><button id="window-min">−</button><button id="window-max">□</button><button id="window-close">×</button></div>
+  </header>
+
+  <div class="workspace">
+    <aside class="project-sidebar">
+      <header><strong>PROJECT</strong><div class="panel-actions"><button id="left-panel-collapse" class="panel-icon" aria-label="Collapse project panel" title="Collapse project panel">‹</button><button id="left-panel-close" class="panel-icon" aria-label="Close project panel" title="Close project panel">×</button></div></header>
+      <div id="project-tree" class="project-tree">
+        <div class="tree-row folder open"><span>⌄</span><b>src</b></div>
+        <button class="tree-row file active" data-path="src/app.mjs"><i class="file-dot blue"></i><span>app.mjs</span></button>
+        <button class="tree-row file" data-path="src/canvas.mjs"><i class="file-dot yellow"></i><span>canvas.mjs</span></button>
+        <div class="tree-row folder child"><span>›</span><b>agent</b></div>
+        <button class="tree-row file deep" data-path="src/dock.mjs"><i class="file-dot violet"></i><span>dock.mjs</span></button>
+        <div class="tree-row folder child"><span>⌄</span><b>chat</b></div>
+        <button class="tree-row file deep" data-path="src/chat-entry.js"><i class="file-dot mint"></i><span>chat-entry.js</span></button>
+      </div>
+      <div class="sidebar-actions">
+        <button id="save-canvas" class="sidebar-action">Save canvas <span>⌘S</span></button>
+      </div>
+    </aside>
+
+    <main class="canvas-pane">
+      <div class="canvas-tabs">
+        <span>Architecture overview</span><span id="map-meta" class="count-badge">Open a project</span>
+        <div class="canvas-controls"><button id="pan-tool" class="tool-button active">Pan</button><button id="select-tool" class="tool-button">Select</button><button id="fit-view" class="tool-button">Fit</button></div>
+      </div>
+      <div id="canvas" class="canvas" tabindex="0">
+        <svg id="edges" class="edges"></svg><div id="world" class="world"></div>
+        <div class="canvas-empty" id="canvas-empty"><div class="empty-mark">✦</div><h1>Map your codebase</h1><p>Open a local project to build an interactive architecture map and discuss it with the assistant.</p><button id="empty-open" class="button primary">Open project</button></div>
+        <div class="concept-label">03 · AI Workspace — persistent assistant & actionable insights</div>
+      </div>
+      <footer class="statusbar"><span class="status-dot"></span><span>main</span><span id="selection-label">Nothing selected</span><span class="push" id="status">Ready</span><span id="zoom-label">100%</span></footer>
+    </main>
+
+    <aside id="focus-dock" class="focus-dock">
+      <header class="dock-header">
+        <div class="dock-title"><div class="dock-spark">✦</div><div><strong>Architecture Assistant</strong><span id="dock-subtitle">DeepSeek · project context</span></div></div>
+        <button id="new-chat" class="small-button">New chat</button>
+        <div class="panel-actions right-panel-actions"><button id="right-panel-collapse" class="panel-icon" aria-label="Collapse assistant" title="Collapse assistant">›</button><button id="right-panel-fullscreen" class="panel-icon" aria-label="Fullscreen assistant" title="Fullscreen assistant">⛶</button><button id="right-panel-close" class="panel-icon" aria-label="Close assistant" title="Close assistant">×</button></div>
+      </header>
+      <div class="context-bar"><span id="context-chip" class="context-chip muted">app.js</span><span class="context-chip">Selected area</span><button id="clear-selection" class="context-clear" title="Clear selection">×</button>
+        <div class="dock-tabs" role="tablist"><button class="dock-tab" data-mode="code">Code</button><button class="dock-tab active" data-mode="chat">Chat</button><button class="dock-tab" data-mode="split">Split</button></div>
+      </div>
+      <div class="dock-content">
+        <section id="code-panel" class="code-panel"><header class="panel-toolbar"><span id="file-path">Select a symbol node</span><span id="location-badge" class="location-badge">—</span><button id="save-file" class="small-button" disabled>Save file</button></header><div class="editor-shell"><pre id="code-gutter" class="code-gutter" aria-hidden="true">1</pre><textarea id="code-editor" spellcheck="false" disabled placeholder="Select a symbol on the canvas to open its source."></textarea></div></section>
+        <section id="chat-panel" class="chat-panel">
+          <div id="chat-messages" class="chat-messages"><div id="chat-empty" class="chat-empty"><div class="chat-empty-mark">✦</div><h2>Ask about the architecture</h2><p>Select a node to attach its source and map context.</p><div class="prompt-list"><button>Explain the selected file</button><button>Find architectural risks</button><button>Suggest a refactoring plan</button></div></div></div>
+          <div class="insight-card"><span class="risk-dot"></span><div><strong>High-impact refactor</strong><p>Extract shared state and isolate orchestration. Expected result: fewer global dependencies and easier tests.</p><div><button>Show affected nodes</button><button>Draft plan</button></div></div></div>
+          <div class="composer"><textarea id="chat-input" rows="1" placeholder="Ask about the project…"></textarea><div class="composer-footer"><span>Context: selected files · project map</span><button id="chat-send" class="send-button" disabled aria-label="Send message">↑</button></div></div>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <div id="settings-modal" class="modal hidden"><form id="settings-form" class="modal-card"><header><div><strong>AI provider</strong><span>OpenAI-compatible endpoint</span></div><button type="button" id="settings-close">×</button></header><label>API key<input id="api-key" type="password" autocomplete="off" placeholder="Leave blank to keep the saved key"></label><label>Base URL<input id="base-url" type="url"></label><label>Model<input id="model" type="text"></label><label>Language<input id="language" type="text"></label><div id="key-state" class="key-state"></div><footer><button type="button" id="clear-key" class="button danger">Clear key</button><button type="submit" class="button primary">Save settings</button></footer></form></div>
+  <script type="module" src="./app.mjs"></script>
+</div>
+</body>
+</html>

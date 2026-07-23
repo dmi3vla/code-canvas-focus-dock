@@ -1,0 +1,22 @@
+{
+  "name": "code-canvas-focus-dock",
+  "version": "1.0.0",
+  "description": "Local-first Electron code canvas with a permanent Focus Dock for code and AI chat.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "dev": "electron . --no-sandbox",
+    "check": "node --check main.js && node --check preload.js && node --check main/services/project-service.js && node --check main/services/settings-service.js && node --check main/services/ai-service.js && node --check src/app.mjs && node --check src/canvas.mjs && node --check src/dock.mjs",
+    "test": "node tests/project-service.test.js"
+  },
+  "keywords": ["electron", "code-canvas", "codemap", "ai", "architecture"],
+  "license": "MIT",
+  "dependencies": {
+    "@ai-sdk/openai": "^1.3.24",
+    "ai": "^4.3.19",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "electron": "^31.0.2"
+  }
+}
