@@ -24,6 +24,15 @@ function createWindow() {
   });
   win.webContents.setWindowOpenHandler(() => ({ action:'deny' }));
   win.webContents.on('will-navigate', (event,url) => { if (url !== win.webContents.getURL()) event.preventDefault(); });
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown') {
+      const isControlOrMeta = input.control || input.meta;
+      if ((isControlOrMeta && input.shift && input.key.toLowerCase() === 'i') || input.key === 'F12') {
+        win.webContents.toggleDevTools();
+        event.preventDefault();
+      }
+    }
+  });
   win.once('ready-to-show', () => win.show());
   win.loadFile(path.join(__dirname,'src','index.html'));
   return win;

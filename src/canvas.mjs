@@ -24,12 +24,14 @@ export class CanvasView {
     });
     this.canvas.addEventListener('pointermove', (event) => {
       if (!this.drag) return;
+      const dx = event.clientX - this.drag.x, dy = event.clientY - this.drag.y;
+      if (Math.hypot(dx, dy) > 3) this.dragHasMoved = true;
       if (this.drag.type === 'pan') {
-        this.view.x = this.drag.startX + event.clientX - this.drag.x;
-        this.view.y = this.drag.startY + event.clientY - this.drag.y;
+        this.view.x = this.drag.startX + dx;
+        this.view.y = this.drag.startY + dy;
       } else {
         const node = this.map.nodes.find((item) => item.id === this.drag.nodeId);
-        if (node) { node.x = this.drag.startX + (event.clientX - this.drag.x) / this.view.scale; node.y = this.drag.startY + (event.clientY - this.drag.y) / this.view.scale; }
+        if (node) { node.x = this.drag.startX + dx / this.view.scale; node.y = this.drag.startY + dy / this.view.scale; }
       }
       this.applyView(); this.renderEdges(); if (this.drag.type === 'node') this.positionNode(this.drag.nodeId);
     });
@@ -54,10 +56,22 @@ export class CanvasView {
       el.querySelector('.node-file').textContent = node.title || 'Untitled'; el.querySelector('.node-kind').textContent = node.type || 'file';
       const symbol = node.symbol || node.title || 'file'; el.querySelector('.node-symbol').textContent = `${symbol} · L${node.startLine || 1}`;
       el.querySelector('p').textContent = node.summary || 'Source symbol'; el.querySelector('.node-path').textContent = node.path || '';
-      el.addEventListener('click', (event) => { event.stopPropagation(); this.select(node.id); });
+      el.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (this.dragHasMoved) return;
+        this.select(node.id);
+      });
       el.addEventListener('keydown', (event) => { if (event.key === 'Enter') this.select(node.id); });
-      el.addEventListener('pointerdown', (event) => { if (event.button !== 0) return; event.stopPropagation(); this.drag = { type:'node',nodeId:node.id,x:event.clientX,y:event.clientY,startX:node.x,startY:node.y,moved:false }; el.setPointerCapture(event.pointerId); });
-      el.addEventListener('pointerup', (event) => { if (el.hasPointerCapture(event.pointerId)) el.releasePointerCapture(event.pointerId); });
+      el.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        event.stopPropagation();
+        this.dragHasMoved = false;
+        this.drag = { type:'node',nodeId:node.id,x:event.clientX,y:event.clientY,startX:node.x,startY:node.y };
+        el.setPointerCapture(event.pointerId);
+      });
+      el.addEventListener('pointerup', (event) => {
+        if (el.hasPointerCapture(event.pointerId)) el.releasePointerCapture(event.pointerId);
+      });
       this.world.appendChild(el); this.positionNode(node.id);
     }
     this.renderEdges(); this.applyView();

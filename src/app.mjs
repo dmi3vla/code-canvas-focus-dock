@@ -12,7 +12,7 @@ let project=null;
 
 function setStatus(text){status.textContent=text;}
 let canvas;
-const dock=new FocusDock({root:app,api,onMode:()=>requestAnimationFrame(()=>canvas?.fit()),onClearSelection:()=>canvas?.select(null)});
+const dock=new FocusDock({root:app,api,onClearSelection:()=>canvas?.select(null)});
 canvas=new CanvasView({canvas:document.getElementById('canvas'),world:document.getElementById('world'),edges:document.getElementById('edges'),onSelect:handleNodeSelection,onStatus:({scale})=>zoomLabel.textContent=`${Math.round(scale*100)}%`});
 
 function loadMap(codemap){canvas.setMap(codemap);empty.classList.toggle('hidden',Boolean(codemap?.nodes?.length));mapMeta.textContent=`${codemap?.nodes?.length||0} files`;dock.setSelection(null,codemap);}
@@ -36,6 +36,8 @@ function renderProjectTree(files=[]){
 
 let activeLocation = null;
 let navigationSequence = 0;
+
+function normalizePath(value=''){return String(value).replaceAll('\\','/').replace(/^\.\//,'');}
 
 function expandParentFolders(row) {
   let parent = row.closest('.tree-folder');
