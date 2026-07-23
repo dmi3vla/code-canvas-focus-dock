@@ -29,13 +29,35 @@ function codemapTraces(codemap){
 function appendGuide(container,guide=''){
   for(const raw of String(guide).split('\n')){const line=raw.trim();if(!line)continue;const element=document.createElement(line.startsWith('## ')?'h4':'p');element.textContent=line.replace(/^##\s+/,'');container.appendChild(element);}
 }
+const textFullscreenToggle=document.getElementById('text-fullscreen-toggle');
+let isTextFullscreen=false;
+
 function renderTextView(codemap){
   textView.innerHTML='';
   const header=document.createElement('header');header.className='text-map-header';const title=document.createElement('h2');title.textContent=codemap?.title||'Code map';const description=document.createElement('p');description.textContent=codemap?.description||'Ordered architecture flows and source locations.';header.append(title,description);textView.appendChild(header);
   const traces=document.createElement('div');traces.className='text-traces';
-  for(const trace of codemapTraces(codemap)){const section=document.createElement('section');section.className='text-trace';const traceHead=document.createElement('header');const badge=document.createElement('span');badge.textContent=trace.id;const heading=document.createElement('div');const h3=document.createElement('h3');h3.textContent=trace.title;const sub=document.createElement('p');sub.textContent=trace.description||'';heading.append(h3,sub);traceHead.append(badge,heading);section.appendChild(traceHead);if(trace.traceGuide){const guide=document.createElement('div');guide.className='trace-guide-text';appendGuide(guide,trace.traceGuide);section.appendChild(guide);}const list=document.createElement('div');list.className='text-location-list';for(const location of trace.locations||[]){const node=currentCodemap?.nodes?.find(item=>item.id===location.nodeId||item.locationId===location.id);const button=document.createElement('button');button.className='text-location';const id=document.createElement('b');id.textContent=location.id;const body=document.createElement('span');const label=document.createElement('strong');label.textContent=location.title||node?.title||location.path;const meta=document.createElement('code');meta.textContent=`${location.path}:${location.lineNumber||node?.startLine||1}`;const desc=document.createElement('small');desc.textContent=location.description||location.lineContent||node?.summary||'';body.append(label,meta,desc);button.append(id,body);button.addEventListener('click',()=>navigateToLocation({nodeId:node?.id||location.nodeId||null,path:location.path,symbol:node?.symbol||location.title,startLine:location.lineNumber||node?.startLine||1,endLine:node?.endLine||location.lineNumber||1},{source:'text'}));list.appendChild(button);}section.appendChild(list);traces.appendChild(section);}textView.appendChild(traces);
+  for(const trace of codemapTraces(codemap)){const section=document.createElement('section');section.className='text-trace';const traceHead=document.createElement('header');const badge=document.createElement('span');badge.textContent=trace.id;const heading=document.createElement('div');const h3=document.createElement('h3');h3.textContent=trace.title;const sub=document.createElement('p');sub.textContent=trace.description||'';heading.append(h3,sub);traceHead.append(badge,heading);section.appendChild(traceHead);if(trace.traceGuide){const guide=document.createElement('div');guide.className='trace-guide-text';appendGuide(guide,trace.traceGuide);section.appendChild(guide);}const list=document.createElement('div');list.className='text-location-list';for(const location of trace.locations||[]){const node=currentCodemap?.nodes?.find(item=>item.id===location.nodeId||item.locationId===location.id);const button=document.createElement('button');button.className='text-location';if(node?.id)button.dataset.nodeId=node.id;button.dataset.path=location.path;const id=document.createElement('b');id.textContent=location.id;const body=document.createElement('span');const label=document.createElement('strong');label.textContent=location.title||node?.title||location.path;const meta=document.createElement('code');meta.textContent=`${location.path}:${location.lineNumber||node?.startLine||1}`;const desc=document.createElement('small');desc.textContent=location.description||location.lineContent||node?.summary||'';body.append(label,meta,desc);button.append(id,body);button.addEventListener('click',()=>{
+    textView.querySelectorAll('.text-location.active').forEach(el=>el.classList.remove('active'));
+    button.classList.add('active');
+    navigateToLocation({nodeId:node?.id||location.nodeId||null,path:location.path,symbol:node?.symbol||location.title,startLine:location.lineNumber||node?.startLine||1,endLine:node?.endLine||location.lineNumber||1},{source:'text'});
+  });list.appendChild(button);}section.appendChild(list);traces.appendChild(section);}textView.appendChild(traces);
 }
-function setCanvasMode(mode){canvasMode=mode==='text'?'text':'graph';canvasElement.classList.toggle('text-mode',canvasMode==='text');textView.hidden=canvasMode!=='text';textToggle.classList.toggle('active',canvasMode==='text');textToggle.setAttribute('aria-pressed',String(canvasMode==='text'));setStatus(canvasMode==='text'?'Text flow view':'Graph view');}
+function setTextFullscreen(fullscreen){
+  isTextFullscreen=Boolean(fullscreen);
+  textView.classList.toggle('text-fullscreen',isTextFullscreen);
+  textFullscreenToggle.classList.toggle('active',isTextFullscreen);
+  textFullscreenToggle.title=isTextFullscreen?'Exit text fullscreen':'Text fullscreen';
+}
+function setCanvasMode(mode){
+  canvasMode=mode==='text'?'text':'graph';
+  canvasElement.classList.toggle('text-mode',canvasMode==='text');
+  textView.hidden=canvasMode!=='text';
+  textToggle.classList.toggle('active',canvasMode==='text');
+  textToggle.setAttribute('aria-pressed',String(canvasMode==='text'));
+  textFullscreenToggle.classList.toggle('hidden',canvasMode!=='text');
+  if(canvasMode!=='text'&&isTextFullscreen)setTextFullscreen(false);
+  setStatus(canvasMode==='text'?'Text flow view':'Graph view');
+}
 
 function renderProjectTree(files=[]){
   const tree=document.getElementById('project-tree');
@@ -104,6 +126,17 @@ async function navigateToLocation(location, options = {}) {
 
   revealProjectFile(location.path);
 
+  if (options.source !== 'text') {
+    textView.querySelectorAll('.text-location.active').forEach((el) => el.classList.remove('active'));
+    const targetTextEl = location.nodeId 
+      ? textView.querySelector(`.text-location[data-node-id="${CSS.escape(location.nodeId)}"]`)
+      : textView.querySelector(`.text-location[data-path="${CSS.escape(location.path)}"]`);
+    if (targetTextEl) {
+      targetTextEl.classList.add('active');
+      targetTextEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
   const node = location.nodeId ? canvas?.map?.nodes?.find((n) => n.id === location.nodeId) : null;
   dock.setSelection(node, canvas?.map);
 
@@ -164,10 +197,11 @@ function closeSettings(){settingsModal.classList.add('hidden');}
 document.getElementById('settings-form').addEventListener('submit',async(event)=>{event.preventDefault();await api.setSettings({apiKey:document.getElementById('api-key').value,baseUrl:document.getElementById('base-url').value,model:document.getElementById('model').value,language:document.getElementById('language').value});closeSettings();setStatus('AI settings saved');});
 document.getElementById('clear-key').addEventListener('click',async()=>{await api.setSettings({clearApiKey:true});closeSettings();setStatus('API key removed');});
 
+  textFullscreenToggle.addEventListener('click',()=>setTextFullscreen(!isTextFullscreen));
 document.getElementById('open-project').addEventListener('click',openProject);document.getElementById('empty-open').addEventListener('click',openProject);document.getElementById('generate').addEventListener('click',generate);document.getElementById('save-canvas').addEventListener('click',saveCanvas);document.getElementById('open-canvas').addEventListener('click',openCanvas);document.getElementById('fit-view').addEventListener('click',()=>canvasMode==='text'?textView.scrollTo({top:0,behavior:'smooth'}):canvas.fit());textToggle.addEventListener('click',()=>setCanvasMode(canvasMode==='text'?'graph':'text'));
 document.getElementById('pan-tool').addEventListener('click',()=>setTool('pan'));document.getElementById('select-tool').addEventListener('click',()=>setTool('select'));
 function setTool(tool){canvas.setTool(tool);document.querySelectorAll('.button.tool').forEach((button)=>button.classList.toggle('active',button.id.startsWith(tool)));setStatus(`${tool[0].toUpperCase()+tool.slice(1)} tool`);}
 document.getElementById('settings-open').addEventListener('click',openSettings);document.getElementById('settings-close').addEventListener('click',closeSettings);settingsModal.addEventListener('pointerdown',(event)=>{if(event.target===settingsModal)closeSettings();});
 document.getElementById('window-min').addEventListener('click',()=>api.minimize());document.getElementById('window-max').addEventListener('click',()=>api.toggleMaximize());document.getElementById('window-close').addEventListener('click',()=>api.close());
-window.addEventListener('keydown',(event)=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='o'){event.preventDefault();openProject();}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveCanvas();}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='j'){event.preventDefault();dock.setMode('chat');document.getElementById('chat-input').focus();}if(event.key==='Escape'){if(app.dataset.rightPanel==='fullscreen')setRightPanel('open');else closeSettings();}});
+window.addEventListener('keydown',(event)=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='o'){event.preventDefault();openProject();}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveCanvas();}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='j'){event.preventDefault();dock.setMode('chat');document.getElementById('chat-input').focus();}if(event.key==='Escape'){if(isTextFullscreen)setTextFullscreen(false);else if(app.dataset.rightPanel==='fullscreen')setRightPanel('open');else closeSettings();}});
 api.version().then((version)=>setStatus(`Ready · v${version}`)).catch(()=>setStatus('Ready'));
