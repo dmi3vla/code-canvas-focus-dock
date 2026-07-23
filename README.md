@@ -88,3 +88,10 @@ node tests/project-service.test.js
 ## License
 
 MIT
+
+## Flow codemap generation
+
+- **Text** beside **Fit** switches between the graph and an ordered textual flow view.
+- AI generation uses a local, security-hardened adaptation of the public Windsurf Codemap smart prompt workflow: https://github.com/Cometix-Org/windsurf-codemap/tree/master/prompts
+- Generated maps contain coherent execution/data-flow traces, source locations, concise onboarding guides, and clickable file/line references.
+- Project source is always treated as untrusted data; only known relative project paths are accepted in the generated result.

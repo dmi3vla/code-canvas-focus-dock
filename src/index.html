@@ -48,10 +48,10 @@
     <main class="canvas-pane">
       <div class="canvas-tabs">
         <span>Architecture overview</span><span id="map-meta" class="count-badge">Open a project</span>
-        <div class="canvas-controls"><button id="pan-tool" class="tool-button active">Pan</button><button id="select-tool" class="tool-button">Select</button><button id="fit-view" class="tool-button">Fit</button></div>
+        <div class="canvas-controls"><button id="pan-tool" class="tool-button active">Pan</button><button id="select-tool" class="tool-button">Select</button><button id="fit-view" class="tool-button">Fit</button><button id="text-view-toggle" class="tool-button" aria-pressed="false">Text</button></div>
       </div>
       <div id="canvas" class="canvas" tabindex="0">
-        <svg id="edges" class="edges"></svg><div id="world" class="world"></div>
+        <svg id="edges" class="edges"></svg><div id="world" class="world"></div><div id="canvas-text-view" class="canvas-text-view" hidden></div>
         <div class="canvas-empty" id="canvas-empty"><div class="empty-mark">✦</div><h1>Map your codebase</h1><p>Open a local project to build an interactive architecture map and discuss it with the assistant.</p><button id="empty-open" class="button primary">Open project</button></div>
         <div class="concept-label">03 · AI Workspace — persistent assistant & actionable insights</div>
       </div>
