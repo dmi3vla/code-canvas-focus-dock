@@ -1,0 +1,234 @@
+Code Canvas Focus Dock - Core Application Flows
+Created 23 июля 2026 г. в 20:25
+Code Canvas Focus Dock application flows covering startup, project management, canvas interaction, AI chat, file editing, and secure settings. Key locations include the secure window creation [1c], project scanning workflow [2b], canvas node selection [3b], AI streaming pipeline [4c], secure file writing [5e], and OS-level encryption [6d].
+
+AI generated guide
+Motivation
+Code Canvas Focus Dock needs a secure desktop application that can visualize code architecture while protecting users from malicious code. The application must run local files safely, prevent web-based attacks, and provide a native desktop experience. Electron provides cross-platform desktop capabilities but requires careful security configuration to avoid exposing the system to risks from untrusted code files.
+
+Details
+The application starts by initializing Electron's main process [1a], which immediately removes the default menu bar and sets up Content Security Policy headers to block unauthorized network requests and script execution. The core security happens in the BrowserWindow constructor [1b], where sandbox mode is explicitly enabled with contextIsolation: true, nodeIntegration: false, and sandbox: true [1c]. This creates a secure jail that prevents renderer processes from accessing Node.js APIs or the filesystem directly.
+
+The window configuration includes navigation blocking to stop the renderer from navigating to external websites, and custom window controls replace the native frame. Once the secure window is ready, it loads the frontend interface [1d]. The main process also sets up event handlers for window management, ensuring proper cleanup when all windows are closed or when the app is reactivated on macOS. This entire initialization sequence establishes the security foundation that allows the app to safely analyze and display potentially untrusted code files.
+
+Electron Application Startup
+1a
+Electron App Ready
+main.js:41
+app.whenReady().then(() => {
+Menu.setApplicationMenu(null)
+CSP header configuration
+createWindow() call
+1b
+Create Secure Window
+main.js:15
+const win = new BrowserWindow({
+Security setup
+1c
+Security Configuration
+main.js:23
+webPreferences:{ preload:path.join(__dirname,'preload.js'), contextIsolation:true, nodeIntegration:false, sandbox:true }
+Window handlers setup
+Navigation blocking
+win.once('ready-to-show')
+1d
+Load Frontend
+main.js:37
+win.loadFile(path.join(__dirname,'src','index.html'));
+app.on('activate') handler
+app.on('window-all-closed') handler
+
+AI generated guide
+Motivation
+When developers open a new codebase, they need to quickly understand its structure without manual exploration. This system solves that problem by automatically scanning project files and building an interactive architecture map. Instead of manually hunting through directories, users get an instant visual representation of their code organization, import relationships, and key symbols.
+
+Details
+The workflow begins when a user selects a project directory through the native file dialog [2a]. The system then recursively walks the project tree, filtering for relevant file extensions like .js, .ts, .py, and .go while ignoring common directories like node_modules and .git [2d]. For each valid file, it reads the first 5KB of content and extracts function/class definitions using regex patterns to build a symbol index [2e].
+
+The core innovation is the structural codemap generation that happens without any AI API calls [2c]. Files are automatically grouped into logical areas based on their directory structure, and import relationships are parsed to create connection edges between files. This creates an immediate, free architectural overview that works offline.
+
+The entire process is security-hardened with path sandboxing to prevent directory traversal attacks, and results are cached to avoid re-scanning on subsequent opens. The final output is a JSON codemap with positioned nodes and edges that the frontend canvas can render interactively.
+
+Project Opening & Scanning Workflow
+User triggers project open
+2a
+Show Directory Dialog
+main.js:55
+const result = await dialog.showOpenDialog({ properties:['openDirectory'] });
+Project directory selected
+2b
+Scan Project Files
+main.js:58
+projectSnapshot = await projectService.scanProject(projectRoot);
+Walk directory tree
+2d
+File System Traversal
+project-service.js:38
+for (const entry of entries) {
+Filter by extension
+Process valid files
+2e
+Extract File Metadata
+project-service.js:113
+enriched.push({ ...file, preview:content.slice(0,5000), symbols:extractSymbols(content,file.path) });
+Read file content
+Extract symbols
+Store preview & symbols
+2c
+Build Structural Map
+main.js:60
+const codemap = projectService.buildStructuralCodemap(projectSnapshot);
+Group files into areas
+Extract import relationships
+Layout nodes & edges
+
+AI generated guide
+Motivation
+Code Canvas solves the navigation problem in large codebases where developers constantly lose context jumping between files. The canvas provides a visual map of your project's architecture, but the real magic happens when you can instantly jump from a visual node to the exact line of code it represents. This trace shows how clicking a canvas node triggers a coordinated navigation flow that opens the right file, highlights the specific symbol, and updates the UI to maintain context across multiple panels.
+
+Details
+When you click a canvas node [3a], the system immediately calls select() to mark it as active [3b]. This triggers the onSelect callback which calls handleNodeSelection() in the main app controller. The controller then orchestrates navigateToLocation() [3c], which is the central hub that coordinates three simultaneous actions: it expands the project panels if needed, highlights the selected file in the project tree, and tells the Focus Dock to open the location.
+
+The Focus Dock switches to code mode [3d] and calls openFile() which makes a secure IPC request to read the file content [3e]. The preload bridge enforces security by only allowing reads within the project boundaries. Once the content loads, the editor automatically scrolls to the exact line number and highlights the symbol range, creating a seamless transition from visual exploration to code inspection.
+
+This flow demonstrates the coordinated panel architecture where canvas selection, project tree highlighting, and code editor loading all happen in perfect sync to maintain developer context.
+
+Canvas Node Selection & Navigation
+User clicks canvas node
+3a
+Node Click Handler
+canvas.mjs:59
+el.addEventListener('click', (event) => {
+3b
+Select Node
+canvas.mjs:62
+this.select(node.id);
+onSelect callback triggers
+handleNodeSelection() called
+3c
+Navigate to Location
+app.mjs:102
+await navigateToLocation({
+Set dock modes & panels
+Reveal file in project tree
+3d
+Open in Focus Dock
+app.mjs:90
+await dock.openLocation(location);
+this.setMode('code')
+this.openFile() called
+3e
+Load File Content
+dock.mjs:47
+const result=await this.api.readFile(path);
+IPC bridge to main process
+File content loads in editor
+Editor displays source code
+
+AI generated guide
+Motivation
+The Code Canvas Focus Dock needs a real-time AI chat system that can provide contextual assistance while users explore code architecture. The challenge is creating a responsive chat experience that streams responses instantly, maintains conversation context, and integrates seamlessly with the code visualization workflow. Users expect immediate feedback when asking questions about selected code nodes, not delayed batch responses.
+
+Details
+The chat flow begins when a user sends a message through the Focus Dock interface [4a]. The request travels to the main Electron process via IPC, which maintains security by keeping AI API calls off the renderer. The main process delegates to the AI service, which establishes a streaming connection to OpenAI-compatible providers [4c].
+
+The streaming architecture is key to user experience - instead of waiting for a complete response, the system processes chunks as they arrive [4d] and immediately forwards them to the frontend [4e]. This creates the illusion of instantaneous response while the AI is still generating content. The frontend renders each chunk in real-time, allowing users to see the AI "thinking" and providing early value before the full response is ready.
+
+The system carefully manages conversation history and project context, attaching selected file contents and codemap data to each request so the AI can provide relevant, project-aware assistance. All of this happens through a secure IPC bridge that protects API keys and file system access while maintaining the responsive feel users expect from modern chat interfaces.
+
+AI Chat Message Flow
+User sends chat message
+4a
+Send Chat Message
+dock.mjs:73
+const result = await api.sendChat({requestId,message,history,context:this.context()});
+Main process handles request
+4b
+Stream Chat Response
+main.js:109
+const result = await aiService.streamChat({
+AI Service streaming
+createOpenAI client & model
+4c
+AI API Stream
+ai-service.js:82
+const result = streamText({ model, messages, abortSignal:signal });
+Process streaming response
+4d
+Process Stream Chunks
+ai-service.js:84
+for await (const delta of result.textStream) { text += delta; onDelta(delta); }
+Send chunks to renderer
+4e
+Send Chunk to Renderer
+main.js:107
+event.sender.send('chat:chunk',{ requestId,...chunk });
+Frontend displays streaming
+onChatChunk callback updates UI
+
+Focus Dock File Editing System
+User edits code in textarea
+5a
+Editor Input Handler
+dock.mjs:19
+this.editor.addEventListener('input',()=>this.updateGutter());
+updateGutter() call
+User clicks save button
+5b
+Save File Method
+dock.mjs:63
+async saveFile() { if(!this.file)return;
+Disable save button
+writeFile() via IPC bridge
+Main process receives request
+5d
+Path Security Check
+project-service.js:191
+const absolute = assertInside(root, relativePath);
+Path validation
+Symlink resolution
+5e
+Write File to Disk
+project-service.js:199
+await fs.writeFile(absolute, String(content ?? ''), 'utf8');
+Save completion feedback
+Re-enable save button
+Show "Saved" status briefly
+
+AI generated guide
+Motivation
+The application needs to store sensitive AI API keys securely while maintaining user convenience. Storing API keys in plain text is a security risk, but users also need to configure different AI providers and models. The settings system solves this by providing encrypted storage with OS-level protection when available, falling back to file permissions when necessary.
+
+Details
+Settings management flows from the frontend form [6a] through a secure encryption pipeline. When you save settings, the main process validates the API key input [6b] and checks if your OS provides hardware-level encryption [6c]. If available, it uses Electron's safeStorage to encrypt the key [6d]; otherwise, it falls back to base64 encoding. The encrypted data is then written to a settings file with restrictive 0o600 permissions [6e], ensuring only the application can read it. The settings path is stored in your user data directory [6a], keeping configuration separate from project files while maintaining security boundaries.
+
+Settings Management System
+Frontend Settings Form
+6a
+Update Settings
+app.mjs:144
+await api.setSettings({apiKey:document.getElementById('api-key').value,
+Main Process Handler
+Update settings with patch
+Check if API key provided
+6b
+Encrypt API Key
+settings-service.js:71
+if (typeof patch.apiKey === 'string' && patch.apiKey.trim()) current.encryptedApiKey = encryptKey(patch.apiKey.trim());
+Encryption Service
+6c
+Check Encryption Support
+settings-service.js:33
+if (safeStorage.isEncryptionAvailable()) {
+Use safeStorage if available
+6d
+OS-Level Encryption
+settings-service.js:34
+return `safe:${safeStorage.encryptString(apiKey).toString('base64')}`;
+Fallback to base64 encoding
+Secure File Storage
+6e
+Secure File Write
+settings-service.js:27
+fs.writeFileSync(target, JSON.stringify(value, null, 2), { mode: 0o600 });
+Store in user data directory
